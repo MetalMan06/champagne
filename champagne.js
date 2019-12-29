@@ -19,20 +19,34 @@ var Champagne = (function () {
     var holes = {};
     for (var ix = 0; ix < countY; ix++) {
       for (var iy = 0; iy < countX; iy++) {
-        var x = border + radii[0] + ix * pitch;
-        var y = border + radii[0] + iy * pitch;
-        var id = 'id_' + ix + '_' + iy;
-
-        var ir = ix + (iy * countY);
         var radius = radii[radii.length - 1];
+        var ir = ix + (iy * countY);
         if (ir < (holeRadii.length - 1)) {
           radius = holeRadii[ir];
         }
-        holes[id] = new makerjs.paths.Circle([x, y], radius);
+        holes[id(ix, iy)] = new makerjs.paths.Circle(
+          coords(border, ix, iy, pitch, jitter(radii[0] - radius)),
+          radius
+        );
       }
     }
 
     return holes;
+  }
+
+  function id(ix, iy) {
+    return 'id_' + ix + '_' + iy;
+  }
+
+  function jitter(max) {
+    return Math.floor((Math.random() * max * 2) - max);
+  }
+
+  function coords(border, ix, iy, pitch, jitter) {
+    return [
+      border + pitch/2 + ix * pitch + jitter,
+      border + pitch/2 + iy * pitch + jitter
+    ];
   }
 
   function generateHoleRadii(height, width, countX, countY, radii) {
@@ -40,7 +54,7 @@ var Champagne = (function () {
     var holesArea = 0.0;
     var holeCount = countX * countY;
     for (i = 0; i < holeCount; i++) {
-      var radiiNum = i % radii.length;
+      var radiiNum = i % radii.length; // NB. this will generate an even distribution of radii
       var radius = radii[radiiNum];
       holeSizes[i] = radius;
       holesArea += Math.PI * radius * radius;
