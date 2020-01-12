@@ -5,7 +5,7 @@ var Champagne = (function () {
   function Champagne() {
     var args = Array.prototype.slice.call(arguments);
 
-    this.height     = args.shift();
+    this.length     = args.shift();
     this.width      = args.shift();
     this.border     = args.shift();
     this.showBorder = args.shift();
@@ -81,7 +81,7 @@ var Champagne = (function () {
   function borderHeight(_this)   { return __at(_this, _borderHeight  ); }
 
   function _outsideBox(_this) {
-    return new makerjs.models.Rectangle(_this.width, _this.height);
+    return new makerjs.models.Rectangle(_this.width, _this.length);
   }
 
   function _insideBox(_this) {
@@ -121,7 +121,7 @@ var Champagne = (function () {
   }
 
   function _borderHeight(_this) {
-    return _this.height - 2 * _this.border;
+    return _this.length - 2 * _this.border;
   }
 
   function _holeAreas(_this) {
@@ -143,11 +143,11 @@ var Champagne = (function () {
   }
 
   function _totalArea(_this) {
-    return _this.height * _this.width;
+    return _this.length * _this.width;
   }
 
   function _countX(_this) {
-    return Math.floor((_this.height - (2 * _this.border)) / (2 * _this.maxRadius));
+    return Math.floor((_this.length - (2 * _this.border)) / (2 * _this.maxRadius));
   }
 
   function _countY(_this) {
@@ -186,7 +186,7 @@ var Champagne = (function () {
 })();
 
 Champagne.metaParameters = [
-  { title: "Height (mm)"         , type: "range", value: 110, min: 10, max: 2000, step: 10 },
+  { title: "Length (mm)"         , type: "range", value: 110, min: 10, max: 2000, step: 10 },
   { title: "Width (mm)"          , type: "range", value: 210, min: 20, max: 2000, step: 10 },
   { title: "Border (mm)"         , type: "range", value:   5, min:  2, max:   20, step:  1 },
   { title: "Show Border"         , type:  "bool", value: false },
