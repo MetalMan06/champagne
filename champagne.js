@@ -48,13 +48,27 @@ var Champagne = (function () {
   }
 
   function _notes(_this) {
-    return `
-&nbsp;|&nbsp;
----- | ---
-**Hole radii**: | ${radii(_this)}
-**Holes Area**: | ${Math.round(totalHolesArea(_this))}mm&#xb2;
-**Total Area**: | ${totalArea(_this)}mm&#xb2;
-**Open Area**: | ${Math.round((100 * totalHolesArea(_this)) / totalArea(_this))}%`;
+    var result = `
+**Pitch**: ${2 * _this.maxRadius}
+
+| | Circles | Radius | Area |
+|-| -------:| ------:| ----:|`;
+
+    var totalHoleArea = 0.0;
+    for (var key in holeAreas(_this)) {
+      var holeArea = holeAreas(_this)[key].reduce((a, b) => a + b, 0.0);
+      totalHoleArea += holeArea;
+      var percentage = 100 * holeArea / totalArea(_this);
+      result += `
+| | ${holeAreas(_this)[key].length} | ${key}mm | ${Math.round(percentage)}% |`;
+    }
+
+    var totalPercentage = 100 * totalHoleArea / totalArea(_this);
+    result += `
+| | ========= | | ==== |
+| | *${countX(_this)} x ${countY(_this)} =* **${holeCount(_this)}** | | **${Math.round(totalPercentage)}%** |`;
+
+    return result;
   }
 
   function circle(coords, radius) {
