@@ -204,17 +204,17 @@ var Champagne = (function () {
 })();
 
 Champagne.metaParameters = [
-  { title: "Length (mm)"         , type: "range", value: 110, min: 10, max: 2000, step: 10 },
-  { title: "Width (mm)"          , type: "range", value: 210, min: 20, max: 2000, step: 10 },
+  { title: "Length (mm)"         , type: "range", value: 610, min: 10, max: 2000, step: 10 },
+  { title: "Width (mm)"          , type: "range", value: 290, min: 20, max: 2000, step: 10 },
   { title: "Border (mm)"         , type: "range", value:   5, min:  2, max:   20, step:  1 },
   { title: "Show Border"         , type:  "bool", value: false },
   { title: "Shuffle"             , type:  "bool", value: true  },
   { title: "Jitter"              , type:  "bool", value: false },
-  { title: "Max hole radius (mm)", type: "range", value:  20, min: 10, max:  100, step:  1 },
-  { title: "Step 1 (mm)"         , type: "range", value:   4, min:  0, max:   20, step:  1 },
-  { title: "Step 2 (mm)"         , type: "range", value:   8, min:  0, max:   20, step:  1 },
-  { title: "Step 3 (mm)"         , type: "range", value:   4, min:  0, max:   20, step:  1 },
-  { title: "Step 4 (mm)"         , type: "range", value:   1, min:  0, max:   20, step:  1 }
+  { title: "Max Hole Radius (mm)", type: "range", value:  20, min: 10, max:  100, step:  1 },
+  { title: "Step 0 (mm)"         , type: "range", value:   5, min:  0, max:   20, step:  1 },
+  { title: "Step 1 (mm)"         , type: "range", value:   5, min:  0, max:   20, step:  1 },
+  { title: "Step 2 (mm)"         , type: "range", value:   4, min:  0, max:   20, step:  1 },
+  { title: "Step 3 (mm)"         , type: "range", value:   6, min:  0, max:   20, step:  1 }
 ];
 
 module.exports = Champagne;
