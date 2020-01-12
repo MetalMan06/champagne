@@ -8,6 +8,7 @@ var Champagne = (function () {
     this.height     = args.shift();
     this.width      = args.shift();
     this.border     = args.shift();
+    this.jitter     = args.shift();
     this.maxRadius  = args.shift();
 
     this.steps = args;
@@ -157,6 +158,8 @@ var Champagne = (function () {
   }
 
   function coords(_this, ix, iy, jitter) {
+    if (!_this.jitter) jitter = 0;
+
     return [
       _this.border + _this.maxRadius + ix * 2 * _this.maxRadius + jitter,
       _this.border + _this.maxRadius + iy * 2 * _this.maxRadius + jitter
@@ -178,14 +181,15 @@ var Champagne = (function () {
 })();
 
 Champagne.metaParameters = [
-  { title: "Height (mm)"         , type: "range", min: 10, max: 2000, step: 10, value: 110 },
-  { title: "Width (mm)"          , type: "range", min: 20, max: 2000, step: 10, value: 210 },
-  { title: "Border (mm)"         , type: "range", min:  2, max:   20, step:  1, value:   5 },
-  { title: "Max hole radius (mm)", type: "range", min: 10, max:  100, step:  1, value:  20 },
-  { title: "Step 1 (mm)"         , type: "range", min:  0, max:   20, step:  1, value:   4 },
-  { title: "Step 2 (mm)"         , type: "range", min:  0, max:   20, step:  1, value:   8 },
-  { title: "Step 3 (mm)"         , type: "range", min:  0, max:   20, step:  1, value:   4 },
-  { title: "Step 4 (mm)"         , type: "range", min:  0, max:   20, step:  1, value:   1 }
+  { title: "Height (mm)"         , type: "range", value: 110, min: 10, max: 2000, step: 10 },
+  { title: "Width (mm)"          , type: "range", value: 210, min: 20, max: 2000, step: 10 },
+  { title: "Border (mm)"         , type: "range", value:   5, min:  2, max:   20, step:  1 },
+  { title: "Jitter"              , type:  "bool", value: false },
+  { title: "Max hole radius (mm)", type: "range", value:  20, min: 10, max:  100, step:  1 },
+  { title: "Step 1 (mm)"         , type: "range", value:   4, min:  0, max:   20, step:  1 },
+  { title: "Step 2 (mm)"         , type: "range", value:   8, min:  0, max:   20, step:  1 },
+  { title: "Step 3 (mm)"         , type: "range", value:   4, min:  0, max:   20, step:  1 },
+  { title: "Step 4 (mm)"         , type: "range", value:   1, min:  0, max:   20, step:  1 }
 ];
 
 module.exports = Champagne;
