@@ -1,111 +1,173 @@
 var makerjs = require('makerjs');
 
+
 var Champagne = (function () {
-  function Champagne(height, width, border, maxRadius, step1, step2, step3, step4) {
+  function Champagne() {
+    var args = Array.prototype.slice.call(arguments);
+
+    this.height     = args.shift();
+    this.width      = args.shift();
+    this.border     = args.shift();
+    this.maxRadius  = args.shift();
+
+    this.steps = args;
+
     this.units = makerjs.unitType.Millimeter;
 
-    var radii = generateRadii(maxRadius, [step1, step2, step3, step4]);
-
-    this.paths = generateHoles(this, height, width, border, maxRadius, radii);
-    this.models = generateBorder(this, height, width, border);
+    this.paths  = _paths(this);
+    this.models = _models(this);
+    this.notes  = _notes(this);
   }
 
-  function generateHoles(_this, height, width, border, maxRadius, radii) {
-    var countX = Math.floor((height - (2 * border)) / (2 * maxRadius));
-    var countY = Math.floor((width  - (2 * border)) / (2 * maxRadius));
+  function _paths(_this) {
+    var result = {};
 
-    var holeRadii = shuffle(generateHoleRadii(_this, height, width, countX, countY, radii));
-
-    var holes = {};
-    for (var ix = 0; ix < countY; ix++) {
-      for (var iy = 0; iy < countX; iy++) {
-        var radius = radii[radii.length - 1];
-        var ir = ix + (iy * countY);
-        if (ir < (holeRadii.length - 1)) radius = holeRadii[ir];
-        holes[id(ix, iy)] = new makerjs.paths.Circle(
-          coords(border, ix, iy, maxRadius, jitter(radii[0] - radius)),
-          radius
-        );
+    for (var ix = 0; ix < countY(_this); ix++) {
+      for (var iy = 0; iy < countX(_this); iy++) {
+        var ir = ix + (iy * countY(_this));
+        var radius = holeRadii(_this)[ir];
+        var j = jitter(radii(_this)[0] - radius);
+        result[`_${ix}_${iy}`] = circle(coords(_this, ix, iy, j), radius);
       }
     }
-
-    return holes;
-  }
-
-  function generateRadii(maxRadius, steps) {
-    var result = [];
-
-    var step = 0;
-    for (var is = 0; is < steps.length; is++) {
-      step += steps[is];
-      var radius = maxRadius - step;
-      if (radius > 0) result.push(radius);
-    }
-    if (result.length === 0) result = [maxRadius];
 
     return result;
   }
 
-  function id(ix, iy) {
-    return 'id_' + ix + '_' + iy;
+  function _models(_this) {
+    return {
+      outsideBox: outsideBox(_this),
+      insideBox: insideBox(_this)
+    };
+  }
+
+  function _notes(_this) {
+    return `
+&nbsp;|&nbsp;
+---- | ---
+**Hole radii**: | ${radii(_this)}
+**Holes Area**: | ${Math.round(totalHolesArea(_this))}mm&#xb2;
+**Total Area**: | ${totalArea(_this)}mm&#xb2;
+**Open Area**: | ${Math.round((100 * totalHolesArea(_this)) / totalArea(_this))}%`;
+  }
+
+  function circle(coords, radius) {
+    return new makerjs.paths.Circle(coords, radius);
+  }
+
+  function __at(_this, f) {
+    var attr = __at.caller.name;
+    if (!_this[attr]) _this[attr] = f(_this);
+    return _this[attr];
+  }
+
+  function outsideBox(_this)     { return __at(_this, _outsideBox    ); }
+  function insideBox(_this)      { return __at(_this, _insideBox     ); }
+  function holeAreas(_this)      { return __at(_this, _holeAreas     ); }
+  function totalHolesArea(_this) { return __at(_this, _totalHolesArea); }
+  function totalArea(_this)      { return __at(_this, _totalArea     ); }
+  function countX(_this)         { return __at(_this, _countX        ); }
+  function countY(_this)         { return __at(_this, _countY        ); }
+  function holeCount(_this)      { return __at(_this, _holeCount     ); }
+  function radii(_this)          { return __at(_this, _radii         ); }
+  function holeRadii(_this)      { return __at(_this, _holeRadii     ); }
+  function borderWidth(_this)    { return __at(_this, _borderWidth   ); }
+  function borderHeight(_this)   { return __at(_this, _borderHeight  ); }
+
+  function _outsideBox(_this) {
+    return new makerjs.models.Rectangle(_this.width, _this.height);
+  }
+
+  function _insideBox(_this) {
+    return makerjs.$(
+      new makerjs.models.Rectangle(borderWidth(_this), borderHeight(_this))
+    ).move([_this.border, _this.border]).$result;
+  }
+
+  function _radii(_this) {
+    var result = [];
+
+    var radius, step = 0;
+    for (var is = 0; is < _this.steps.length; is++) {
+      step += _this.steps[is];
+      radius = _this.maxRadius - step;
+      if (radius >= 0) result.push(radius);
+    }
+
+    return result;
+  }
+
+  function _holeRadii(_this) {
+    var result = [];
+    for (i = 0; i < holeCount(_this); i++) {
+      var radiiNum = i % radii(_this).length; // NB. this will generate an even distribution of radii
+      var radius = radii(_this)[radiiNum];
+      result[i] = radius;
+    }
+
+    shuffle(result);
+
+    return result;
+  }
+
+  function _borderWidth(_this) {
+    return _this.width - 2 * _this.border;
+  }
+
+  function _borderHeight(_this) {
+    return _this.height - 2 * _this.border;
+  }
+
+  function _holeAreas(_this) {
+    var result = {};
+    for (i = 0; i < holeRadii(_this).length; i++) {
+      var radius = holeRadii(_this)[i];
+      result[radius] = (result[radius] || []).concat([Math.PI * radius * radius]);
+    }
+    return result;
+  }
+
+  function _totalHolesArea(_this) {
+    var result = 0.0;
+    for (var radius in holeAreas(_this)) {
+      var holeArea = holeAreas(_this)[radius].reduce((a, b) => a + b, 0.0);
+      result += holeArea;
+    }
+    return result;
+  }
+
+  function _totalArea(_this) {
+    return _this.height * _this.width;
+  }
+
+  function _countX(_this) {
+    return Math.floor((_this.height - (2 * _this.border)) / (2 * _this.maxRadius));
+  }
+
+  function _countY(_this) {
+    return Math.floor((_this.width - (2 * _this.border)) / (2 * _this.maxRadius));
+  }
+
+  function _holeCount(_this) {
+    return countX(_this) * countY(_this);
   }
 
   function jitter(max) {
     return Math.floor((Math.random() * max * 2) - max);
   }
 
-  function coords(border, ix, iy, maxRadius, jitter) {
+  function coords(_this, ix, iy, jitter) {
     return [
-      border + maxRadius + ix * 2 * maxRadius + jitter,
-      border + maxRadius + iy * 2 * maxRadius + jitter
+      _this.border + _this.maxRadius + ix * 2 * _this.maxRadius + jitter,
+      _this.border + _this.maxRadius + iy * 2 * _this.maxRadius + jitter
     ];
   }
 
-  function displayNotes(_this, height, width, holesArea, radii) {
-    var totalArea = height * width;
-
-    _this.notes = "&nbsp;|&nbsp;" + '\n' +
-      "---- | ---" + '\n' +
-      "**Hole radii**: | " + radii + '\n' +
-      "**Holes Area**: |" + Math.round(holesArea) + "mm&#xb2;" + '\n' +
-      "**Total Area**: |" + totalArea + "mm&#xb2;" + '\n' +
-      "**Open Area**: |" + Math.round((100 * holesArea) / totalArea) + "%";
-  }
-
-  function generateHoleRadii(_this, height, width, countX, countY, radii) {
-    var holeSizes = [];
-    var holesArea = 0.0;
-    var holeCount = countX * countY;
-    for (i = 0; i < holeCount; i++) {
-      var radiiNum = i % radii.length; // NB. this will generate an even distribution of radii
-      var radius = radii[radiiNum];
-      holeSizes[i] = radius;
-      holesArea += Math.PI * radius * radius;
-    }
-
-    displayNotes(_this, height, width, holesArea, radii);
-
-    return holeSizes;
-  }
-
-  function generateBorder(_this, height, width, border) {
-    var borderWidth = width - 2 * border;
-    var borderHeight = height - 2 * border;
-
-    return {
-      outsideBox: new makerjs.models.Rectangle(width, height),
-      insideBox: makerjs.model.move(
-        new makerjs.models.Rectangle(borderWidth, borderHeight),
-        [border, border]
-      )
-    };
-  }
-
   function shuffle(a) {
-    var j, x, i;
-    for (i = a.length - 1; i > 0; i--) {
-      j = Math.floor(Math.random() * (i + 1));
-      x = a[i];
+    // NB. shuffles in place
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var x = a[i];
       a[i] = a[j];
       a[j] = x;
     }
