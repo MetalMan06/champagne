@@ -8,6 +8,7 @@ var Champagne = (function () {
     this.height     = args.shift();
     this.width      = args.shift();
     this.border     = args.shift();
+    this.showBorder = args.shift();
     this.shuffle    = args.shift();
     this.jitter     = args.shift();
     this.maxRadius  = args.shift();
@@ -37,10 +38,13 @@ var Champagne = (function () {
   }
 
   function _models(_this) {
-    return {
-      outsideBox: outsideBox(_this),
-      insideBox: insideBox(_this)
+    var result = {
+      outsideBox: outsideBox(_this)
     };
+
+    if (_this.showBorder) result.insideBox = insideBox(_this);
+
+    return result;
   }
 
   function _notes(_this) {
@@ -185,6 +189,7 @@ Champagne.metaParameters = [
   { title: "Height (mm)"         , type: "range", value: 110, min: 10, max: 2000, step: 10 },
   { title: "Width (mm)"          , type: "range", value: 210, min: 20, max: 2000, step: 10 },
   { title: "Border (mm)"         , type: "range", value:   5, min:  2, max:   20, step:  1 },
+  { title: "Show Border"         , type:  "bool", value: false },
   { title: "Shuffle"             , type:  "bool", value: true  },
   { title: "Jitter"              , type:  "bool", value: false },
   { title: "Max hole radius (mm)", type: "range", value:  20, min: 10, max:  100, step:  1 },
