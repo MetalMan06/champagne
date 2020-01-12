@@ -1,7 +1,8 @@
 var makerjs = require('makerjs');
 
-
 var Champagne = (function () {
+  var version = 'v2.0';
+
   function Champagne() {
     var args = Array.prototype.slice.call(arguments);
 
@@ -70,7 +71,10 @@ var Champagne = (function () {
     var totalPercentage = 100 * totalHoleArea / totalArea(_this);
     result += `
 | | ========= | | ==== |
-| | *${countX(_this)} x ${countY(_this)} =* **${holeCount(_this)}** | | **${Math.round(totalPercentage)}%** |`;
+| | *${countX(_this)} x ${countY(_this)} =* **${holeCount(_this)}** | | **${Math.round(totalPercentage)}%** |
+
+---
+[${version}](https://github.com/yertto/champagne/releases/tag/${version})`;
 
     return result;
   }
