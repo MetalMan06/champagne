@@ -55,12 +55,16 @@ var Champagne = (function () {
 |-| -------:| ------:| ----:|`;
 
     var totalHoleArea = 0.0;
-    for (var key in holeAreas(_this)) {
-      var holeArea = holeAreas(_this)[key].reduce((a, b) => a + b, 0.0);
+    var radii = [];
+    for (var radius in holeAreas(_this)) radii.unshift(radius);
+
+    for (var i = 0; i < radii.length; i++) {
+      var radius = radii[i];
+      var holeArea = holeAreas(_this)[radius].reduce((a, b) => a + b, 0.0);
       totalHoleArea += holeArea;
       var percentage = 100 * holeArea / totalArea(_this);
       result += `
-| | ${holeAreas(_this)[key].length} | ${key}mm | ${Math.round(percentage)}% |`;
+| | ${holeAreas(_this)[radius].length} | ${radius}mm | ${Math.round(percentage)}% |`;
     }
 
     var totalPercentage = 100 * totalHoleArea / totalArea(_this);
