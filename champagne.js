@@ -1,5 +1,7 @@
 const makerjs = require('makerjs');
 
+// --- BEGIN helpers ---
+// waiting for javascript decorators so we can @memoize the getters ...
 /*
 function memoize(target, name, descriptor) {
   let cacheKey = `_${name}`;
@@ -13,9 +15,56 @@ function memoize(target, name, descriptor) {
 }
 */
 
+// ... instead do memoization on all getters with:
+function memoizeGettersOnClass(class_prototype) {
+  Object.entries(Object.getOwnPropertyDescriptors(class_prototype))
+    .filter(([key, descriptor]) => typeof descriptor.get === 'function')
+    .map(([key]) => key)
+    .forEach(getter => {
+      let func = Object.getOwnPropertyDescriptor(class_prototype, getter);
+      let cacheKey = `_${getter}`;
+      Object.defineProperty(class_prototype, getter, {
+        get: function () {
+          return this[cacheKey] = this[cacheKey] || func.get.call(this);
+        }
+      });
+    });
+}
+function memoizeGettersOn(...classes) {
+  classes.forEach(clazz => memoizeGettersOnClass(clazz.prototype))
+}
+
+// And some delegation would be handy...
+function delegate(from, to, ...fns) {
+  for (fn of fns) { from[fn] = to[fn] }
+}
+// --- END helpers ---
+
+
+
+function jitter(range) {
+  return Math.floor((Math.random() * range * 2) - range)
+}
+
+function shuffle(array) {
+  let result = [...array]; // make a copy
+
+  // sort result in place
+  for (let i = result.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    let x = result[i];
+    result[i] = result[j];
+    result[j] = x;
+  }
+
+  return result
+}
+
+
+const VERSION = 'v0.3.1';
+
 class Champagne {
   constructor(length, width, border, showBorder, shuffle, jitter, maxRadius, ...steps) {
-    this.version = 'v0.3.0';
     this.units = makerjs.unitType.Millimeter;
 
     this.length = length;
@@ -33,24 +82,6 @@ class Champagne {
     this.notes = this.getNotes();
   }
 
-  static jitter(max) {
-    return Math.floor((Math.random() * max * 2) - max);
-  }
-
-  static shuffle(a) {
-    // NB. shuffles in place
-    for (let i = a.length - 1; i > 0; i--) {
-      let j = Math.floor(Math.random() * (i + 1));
-      let x = a[i];
-      a[i] = a[j];
-      a[j] = x;
-    }
-    return a;
-  }
-
-  static circle(coords, radius) {
-    return new makerjs.paths.Circle(coords, radius);
-  }
 
   coords(ix, iy, jitter) {
     if (!this.jitter) jitter = 0;
@@ -58,40 +89,36 @@ class Champagne {
     return [
       this.border + this.maxRadius + ix * 2 * this.maxRadius + jitter,
       this.border + this.maxRadius + iy * 2 * this.maxRadius + jitter
-    ];
+    ]
   }
 
 
-  // @memoize
   get countX() {
-    return Math.floor((this.length - (2 * this.border)) / (2 * this.maxRadius));
+    return Math.floor((this.width - (2 * this.border)) / (2 * this.maxRadius))
   }
 
-  // @memoize
   get countY() {
-    return Math.floor((this.width - (2 * this.border)) / (2 * this.maxRadius));
+    return Math.floor((this.length - (2 * this.border)) / (2 * this.maxRadius))
   }
 
-  // @memoize
   get holeRadii() {
     let result = [];
+
     for (let i = 0; i < this.holeCount; i++) {
       let radiiNum = i % this.radii.length; // NB. this will generate an even distribution of radii
       let radius = this.radii[radiiNum];
       result[i] = radius;
     }
 
-    if (this.shuffle) this.constructor.shuffle(result);
+    if (this.shuffle) result = shuffle(result);
 
-    return result;
+    return result
   }
 
-  // @memoize
   get holeCount() {
-    return this.countX * this.countY;
+    return this.countX * this.countY
   }
 
-  // @memoize
   get radii() {
     let result = [];
 
@@ -101,63 +128,50 @@ class Champagne {
       radius = this.maxRadius - step;
       if (radius >= 0) result.push(radius);
     }
+//console.log(result);  // if memoized this should only get called once
 
-    return result;
+    return result
   }
 
-  // @memoize
   get outsideBox() {
-    return new makerjs.models.Rectangle(this.width, this.length);
+    return new makerjs.models.Rectangle(this.width, this.length)
   }
 
-  // @memoize
   get insideBox() {
     return makerjs.$(
       new makerjs.models.Rectangle(this.borderWidth, this.borderHeight)
-    ).move([this.border, this.border]).$result;
+    ).move([this.border, this.border]).$result
   }
 
-  // @memoize
   get borderWidth() {
-    return this.width - 2 * this.border;
+    return this.width - 2 * this.border
   }
 
-  // @memoize
   get borderHeight() {
-    return this.length - 2 * this.border;
+    return this.length - 2 * this.border
   }
 
-  // @memoize
-  get holeAreas() {
-    let result = {};
-    for (let i = 0; i < this.holeRadii.length; i++) {
-      let radius = this.holeRadii[i];
-      result[radius] = (result[radius] || []).concat([Math.PI * radius * radius]);
-    }
-    return result;
-  }
-
-  // @memoize
-  get totalArea() {
-    return this.length * this.width;
-  }
-
-
+  // get paths() {
   getPaths() {
     let result = [];
 
-    for (let ix = 0; ix < this.countY; ix++) {
-      for (let iy = 0; iy < this.countX; iy++) {
-        let ir = ix + (iy * this.countY);
-        let radius = this.holeRadii[ir];
-        let j = this.constructor.jitter(this.radii[0] - radius);
-        result.push(this.constructor.circle(this.coords(ix, iy, j), radius));
+    for (let ir = 0, iy = 0; iy < this.countY; iy++) {
+      for (let ix = 0; ix < this.countX; ix++) {
+        let radius = this.holeRadii[ir++];
+
+        result.push(
+          new makerjs.paths.Circle(
+            this.coords(ix, iy, jitter(this.maxRadius - radius)),
+            radius
+          )
+        );
       }
     }
 
-    return result;
+    return result
   }
 
+  // get models() {
   getModels() {
     let result = [
       this.outsideBox
@@ -165,71 +179,100 @@ class Champagne {
 
     if (this.showBorder) result.push(this.insideBox);
 
-    return result;
+    return result
   }
 
+  // get notes() {
   getNotes() {
-    let result = `
-**Pitch**: ${2 * this.maxRadius}
-
-| | Circles | Radius | Area |
-|-| -------:| ------:| ----:|`;
-
-    let totalHoleArea = 0.0;
-    let radii = [];
-    for (let radius in this.holeAreas) radii.unshift(radius);
-
-    for (let i = 0; i < radii.length; i++) {
-      let radius = radii[i];
-      let holeArea = this.holeAreas[radius].reduce((a, b) => a + b, 0.0);
-      totalHoleArea += holeArea;
-      let percentage = 100 * holeArea / this.totalArea;
-      result += `
-| | ${this.holeAreas[radius].length} | ${radius}mm | ${Math.round(percentage)}% |`;
-    }
-
-    let totalPercentage = 100 * totalHoleArea / this.totalArea;
-    result += `
-| | ========= | | ==== |
-| | *${this.countX} x ${this.countY} =* **${this.holeCount}** | | **${Math.round(totalPercentage)}%** |
-
----
-[${this.version}](https://github.com/yertto/champagne/releases/tag/${this.version})`;
-
-    return result;
+    // return new ChampagneNotes(this);
+    return new ChampagneNotes(this).toString()
   }
 }
 
 
-function memoizeGetters(clazz, functionNames) {
-  functionNames.forEach(functionName => {
-    let func = Object.getOwnPropertyDescriptor(clazz.prototype, functionName);
-    let cacheKey = `_${functionName}`;
-    Object.defineProperty(clazz.prototype, functionName, {
-      get: function () {
-        return this[cacheKey] = this[cacheKey] || func.get.call(this);
-      }
-    });
-  });
-};
-memoizeGetters(Champagne, [
-  'borderHeight',
-  'borderWidth',
-  'countX',
-  'countY',
-  'holeAreas',
-  'holeCount',
-  'holeRadii',
-  'insideBox',
-  'outsideBox',
-  'radii',
-  'totalArea'
-]);
+class ChampagneNotes {
+  constructor(champagne) {
+    delegate(this, champagne,
+      'countX',
+      'countY',
+      'holeCount',
+      'holeRadii',
+      'length',
+      'maxRadius',
+      'width'
+    )
+  }
+
+  get pitch() {
+    return 2 * this.maxRadius
+  }
+
+  get radiiCounts() {
+    return this.holeRadii.reduce(
+      (acc, radius) => Object.assign(acc, { [radius]: (acc[radius] || 0) + 1 }),
+      {}
+    );
+  }
+
+  get totalArea() {
+    return this.length * this.width;
+  }
+
+  get sortedRadii() {
+    return Object.keys(this.radiiCounts).reverse();
+  }
+
+  holeStatsFor(radius) {
+    let count = this.radiiCounts[radius];
+    let holeArea = count * Math.PI * radius * radius;
+    return {
+      count: count,
+      radius: radius,
+      holeArea: holeArea,
+      percentage: Math.round(100 * holeArea / this.totalArea)
+    }
+  }
+
+  get holeStats() {
+    return this.sortedRadii.reduce((acc, radius) =>
+      acc.concat([this.holeStatsFor(radius)]), [])
+  }
+
+  get totalPercentage() {
+    return Math.round(
+      100 * this.holeStats.reduce((acc, holeStat) => acc + holeStat.holeArea, 0.0) / this.totalArea
+    )
+  }
+
+  toString() {
+    return `
+**Pitch**: ${this.pitch}
+
+| | Circles | Radius | Area |
+|-| -------:| ------:| ----:|
+${
+  this.holeStats.reduce((acc, {count, radius, percentage}) =>
+    acc + `\
+| | ${count} | ${radius}mm | ${percentage}% |
+`, ''
+  ).slice(0, -1)
+}
+| | ========= | | ==== |
+| | *${this.countX} x ${this.countY} =* **${this.holeCount}** | | **${this.totalPercentage}%** |
+
+---
+[${VERSION}](https://github.com/yertto/champagne/releases/tag/${VERSION})`;
+  }
+}
+
+
+memoizeGettersOn(Champagne, ChampagneNotes);
 
 
 function champagne() {
   return new Champagne(...arguments);
 };
+
 
 champagne.metaParameters = [
   { title: "Length (mm)"         , type: "range", value: 610, min: 10, max: 2000, step: 10 },
